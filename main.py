@@ -1,17 +1,12 @@
 """
 主要檢查嘅錯別字（錯字 -> 正字）：
 
-1. 左 -> 咗
-2. 係 -> 喺
-3. 既 -> 嘅
-4. 地 -> 哋
 5. 個 -> 嗰
 6. 咁 -> 噉
 7. 野 -> 嘢
 8. 無 -> 冇
-9. 黎 -> 嚟
 10. D -> 啲
-11. 宜家 -> 而家
+11. 比 -> 畀
 """
 
 import argparse
@@ -19,19 +14,28 @@ import re
 
 import pycantonese
 
+regular_typos = []
+lines = open('regular.txt', 'r', encoding='utf-8').readlines()
+for line in lines:
+    pair = line.strip().split(',')
+    regular_typos.append((re.compile(pair[0]), pair[1]))
+
+
+def fix_regular_typo(line: str) -> str:
+    """
+    Regular typo means that they can be simply replaced by a regular expression.
+    Fixing them does not require any context information.
+    """
+    for r in regular_typos:
+        line = re.sub(r[0], r[1], line)
+    return line
+
 
 def fix_line(line: str) -> str:
     """
     """
 
-    # 地 -> 哋
-    line = re.sub("我地", "我哋", line)
-    line = re.sub("你地", "你哋", line)
-    line = re.sub("佢地", "佢哋", line)
-
-    # 宜家 -> 而家
-    line = re.sub("宜家", "而家", line)
-    line = re.sub(r"[oO]既", "嘅", line)
+    line = fix_regular_typo(line)
 
     # 以下字嘅修復需要用到句子詞性同上下文信息
     pos_list = pycantonese.pos_tag(pycantonese.segment(line))
