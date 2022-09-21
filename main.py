@@ -65,20 +65,24 @@ def fix_line(line: str) -> str:
         # 咁/甘 -> 噉, 甘 -> 咁
         # 如果前面係形容詞、副詞，或者後面後動詞、名詞、代詞，就係 噉
         # 如果後面係形容詞、副詞，就係 咁
-        if pair[0] == ("咁" or "甘"):
+        if pair[0] == "咁" or (pair[0] == "甘" and pair[1] not in ["VERB", "NOUN"]):
             if i == len(pos_list) - 1:
                 pos_list[i] = ("噉", pos)
             else:
                 next_word_pos = pos_list[i+1][1]
+                prev_word_pos = pos_list[i-1][1]
                 if next_word_pos in ["ADJ", "ADV"]:
                     pos_list[i] = ("咁", pos)
-                elif next_word_pos in ["VERB", "NOUN", "PRON"] or (i >= 1 and pos_list[i-1][1] in ["ADJ", "ADV"]):
+                elif next_word_pos in ["VERB", "NOUN", "PRON", "PART", "AUX"] or (i >= 1 and prev_word_pos in ["ADJ", "ADV"]):
+                    pos_list[i] = ("噉", pos)
+                elif prev_word_pos in ["ADJ", "ADV"]:
                     pos_list[i] = ("噉", pos)
 
         # 以下詞嘅修復需要用到句子詞性同上下文信息
         if pair[0] == "宜家":
-            next_word = pos_list[i+1][0]
-            if next_word != ("傢俬" or "傢俱" or "家居"):
+            if any(word in line for word in ["傢俬", "傢俱", "家居"]):
+                pass
+            else:
                 pos_list[i] = (word.replace("宜家", "而家"), pos)
 
     line = "".join([pair[0] for pair in pos_list])
