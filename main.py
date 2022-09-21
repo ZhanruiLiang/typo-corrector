@@ -1,9 +1,8 @@
 """
 主要檢查嘅錯別字（錯字 -> 正字）：
-
+4. 係系喺
 5. 個 -> 嗰
 6. 咁 -> 噉
-7. 野 -> 嘢
 8. 無 -> 冇
 10. D -> 啲
 11. 比 -> 畀
@@ -13,12 +12,6 @@ import argparse
 import re
 
 import pycantonese
-
-regular_typos = []
-lines = open('regular.txt', 'r', encoding='utf-8').readlines()
-for line in lines:
-    pair = line.strip().split(',')
-    regular_typos.append((re.compile(pair[0]), pair[1]))
 
 
 def fix_regular_typo(line: str) -> str:
@@ -31,6 +24,9 @@ def fix_regular_typo(line: str) -> str:
     return line
 
 
+pos_file = open('pos.txt', 'w', encoding='utf-8')
+
+
 def fix_line(line: str) -> str:
     """
     """
@@ -39,8 +35,7 @@ def fix_line(line: str) -> str:
 
     # 以下字嘅修復需要用到句子詞性同上下文信息
     pos_list = pycantonese.pos_tag(pycantonese.segment(line))
-
-    # print(pos_list)
+    print(pos_list, file=pos_file)
 
     for i, pair in enumerate(pos_list):
         word, pos = pair
@@ -57,12 +52,30 @@ def fix_line(line: str) -> str:
                 if "又" in "".join([pair[0] for pair in pos_list[i:]]) and pos_list[i+1][1] not in ["ADJ", "ADV", "VERB"]:
                     pass
                 else:
-                    pos_list[i] = (word.replace("既", "嘅"), pos)
+                    pos_list[i] = ("嘅", pos)
         # 黎 -> 嚟
         # 如果 黎 字係動詞，就改成 嚟
         if pair[0] == "黎" and pos == "VERB":
-            pos_list[i] = (word.replace("黎", "嚟"), pos)
-        # 宜家 -> 而家
+            pos_list[i] = ("嚟", pos)
+        # 野 -> 嘢
+        # 如果係隻名詞，就改成 嘢
+        # 包埋動詞同X係因為 pycantonese 有時會識別成動詞
+        if pair[0] == "野" and pos in ["NOUN", "VERB", "X"]:
+            pos_list[i] = ("嘢", pos)
+        # 咁/甘 -> 噉, 甘 -> 咁
+        # 如果前面係形容詞、副詞，或者後面後動詞、名詞、代詞，就係 噉
+        # 如果後面係形容詞、副詞，就係 咁
+        if pair[0] == ("咁" or "甘"):
+            if i == len(pos_list) - 1:
+                pos_list[i] = ("噉", pos)
+            else:
+                next_word_pos = pos_list[i+1][1]
+                if next_word_pos in ["ADJ", "ADV"]:
+                    pos_list[i] = ("咁", pos)
+                elif next_word_pos in ["VERB", "NOUN", "PRON"] or (i >= 1 and pos_list[i-1][1] in ["ADJ", "ADV"]):
+                    pos_list[i] = ("噉", pos)
+
+        # 以下詞嘅修復需要用到句子詞性同上下文信息
         if pair[0] == "宜家":
             next_word = pos_list[i+1][0]
             if next_word != ("傢俬" or "傢俱" or "家居"):
@@ -78,6 +91,13 @@ if __name__ == "__main__":
     parser.add_argument(
         '--input', type=str, help='Input text file, each line is a sentence.')
     args = parser.parse_args()
+
+    # Read regular typos
+    regular_typos = []
+    lines = open('regular.txt', 'r', encoding='utf-8').readlines()
+    for line in lines:
+        pair = line.strip().split(',')
+        regular_typos.append((re.compile(pair[0]), pair[1]))
 
     output = open("output.txt", "w", encoding="utf-8")
     with open(args.input, 'r', encoding='utf-8') as f:
