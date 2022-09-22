@@ -13,6 +13,23 @@ import re
 
 import pycantonese
 
+# han_regex = re.compile(
+# r'[\u3006\u3007\u4e00-\u9fff\u3400-\u4dbf\U00020000-\U0002a6df\U0002a700-\U0002ebef\U00030000-\U0003134f]')
+
+han_regex = r'[\u3006\u3007\u4e00-\u9fff\u3400-\u4dbf\U00020000-\U0002a6df\U0002a700-\U0002ebef\U00030000-\U0003134f]'
+
+
+def is_han(char: str) -> bool:
+    """
+    Check if a character is a Chinese character.
+    """
+    return bool(han_regex.fullmatch(char))
+
+
+def fix_space(line: str) -> str:
+    pattern = r'(?<=' + han_regex + r')\s+(?=' + han_regex + r')'
+    return re.sub(pattern, '', line)
+
 
 def fix_regular_typo(line: str) -> str:
     """
@@ -85,7 +102,7 @@ def fix_line(line: str) -> str:
             else:
                 pos_list[i] = (word.replace("宜家", "而家"), pos)
 
-    line = "".join([pair[0] for pair in pos_list])
+    line = " ".join([pair[0] for pair in pos_list])
 
     return line
 
@@ -106,6 +123,7 @@ if __name__ == "__main__":
     output = open("output.txt", "w", encoding="utf-8")
     with open(args.input, 'r', encoding='utf-8') as f:
         for line in f:
-            line = line.strip().replace(" ", "")
-            fixed_line = fix_line(line)
+            line = line.strip()
+            fixed_line = fix_space(fix_line(line))
+
             output.writelines(fixed_line+"\n")
