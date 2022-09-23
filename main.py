@@ -2,10 +2,8 @@
 主要檢查嘅錯別字（錯字 -> 正字）：
 4. 係系喺
 5. 個 -> 嗰
-6. 咁 -> 噉
-8. 無 -> 冇
 10. D -> 啲
-11. 比 -> 畀
+12.岩啱
 """
 
 import argparse
@@ -79,8 +77,11 @@ def fix_contextual_typo(line: str) -> str:
         # 野 -> 嘢
         # 如果係隻名詞，就改成 嘢
         # 包埋動詞同X係因為 pycantonese 有時會識別成動詞
-        if pair[0] == "野" and pos in ["NOUN", "VERB", "X"]:
-            pos_list[i] = ("嘢", pos)
+        if pair[0] == "野":
+            if pos in ["NOUN",  "X", "PRON"]:
+                pos_list[i] = ("嘢", pos)
+            elif i > 1 and pos_list[i-1][1] in ["VERB"]:
+                pos_list[i] = ("嘢", pos)
         # 咁/甘 -> 噉, 甘 -> 咁
         # 如果前面係形容詞、副詞，或者後面後動詞、名詞、代詞，就係 噉
         # 如果後面係形容詞、副詞，就係 咁
