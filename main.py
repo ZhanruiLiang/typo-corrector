@@ -13,21 +13,15 @@ import re
 
 import pycantonese
 
-# han_regex = re.compile(
-# r'[\u3006\u3007\u4e00-\u9fff\u3400-\u4dbf\U00020000-\U0002a6df\U0002a700-\U0002ebef\U00030000-\U0003134f]')
 
-han_regex = r'[\u3006\u3007\u4e00-\u9fff\u3400-\u4dbf\U00020000-\U0002a6df\U0002a700-\U0002ebef\U00030000-\U0003134f]'
+han_regex = r'[\u3006\u3007\u4e00-\u9fff\u3400-\u4dbf\U00020000-\U0002a6df\U0002a700-\U0002ebef\U00030000-\U0003134f\uff00-\uffef]'
 
-
-def is_han(char: str) -> bool:
-    """
-    Check if a character is a Chinese character.
-    """
-    return bool(han_regex.fullmatch(char))
+# Debugging purpose
+pos_file = open('pos.txt', 'w', encoding='utf-8')
 
 
 def fix_space(line: str) -> str:
-    pattern = r'(?<=' + han_regex + r')\s+(?=' + han_regex + r')'
+    pattern = '(?<={})\s+(?={})'.format(han_regex, han_regex)
     return re.sub(pattern, '', line)
 
 
@@ -41,21 +35,29 @@ def fix_regular_typo(line: str) -> str:
     return line
 
 
-pos_file = open('pos.txt', 'w', encoding='utf-8')
-
-
-def fix_line(line: str) -> str:
+def fix_contextual_typo(line: str) -> str:
     """
+    Contextual typo means that they can be fixed by using the context information.
+
+    List of typos:
+    1. 係系喺
+    2. 個 -> 嗰
+    3. 咁 -> 噉
+    4. 無 -> 冇
+    5. D -> 啲
+    6. 比 -> 畀
+    7. 既 -> 嘅
+    8. 左 -> 咗
     """
 
-    line = fix_regular_typo(line)
-
-    # 以下字嘅修復需要用到句子詞性同上下文信息
     pos_list = pycantonese.pos_tag(pycantonese.segment(line))
+
+    # Debugging purpose
     print(pos_list, file=pos_file)
 
     for i, pair in enumerate(pos_list):
         word, pos = pair
+        length = len(pos_list)
         # 左 -> 咗
         # 如果 左 字前面係一個動詞，噉就改成 咗
         if "左" in pair[0]:
@@ -83,7 +85,7 @@ def fix_line(line: str) -> str:
         # 如果前面係形容詞、副詞，或者後面後動詞、名詞、代詞，就係 噉
         # 如果後面係形容詞、副詞，就係 咁
         if pair[0] == "咁" or (pair[0] == "甘" and pair[1] not in ["VERB", "NOUN"]):
-            if i == len(pos_list) - 1:
+            if i == length - 1:
                 pos_list[i] = ("噉", pos)
             else:
                 next_word_pos = pos_list[i+1][1]
@@ -94,6 +96,20 @@ def fix_line(line: str) -> str:
                     pos_list[i] = ("噉", pos)
                 elif prev_word_pos in ["ADJ", "ADV"]:
                     pos_list[i] = ("噉", pos)
+        # 比 -> 畀
+        # 如果後面第一個詞係名詞，且第二個詞係形容詞、副詞，就係 比
+        if pair[0] == "比":
+            if i <= length-3 and pos_list[i+2][1] in ["ADJ", "ADV"]:
+                pass
+            else:
+                pos_list[i] = ("畀", pos)
+        # 個 -> 嗰
+        # 係系喺
+        # 無 -> 冇
+        if pair[0] == "無":
+            if i <= length-2 and pos_list[i+1][1] == ["NOUN", "ADP"]:
+                pos_list[i] = ("冇", pos)
+        # d/D -> 啲
 
         # 以下詞嘅修復需要用到句子詞性同上下文信息
         if pair[0] == "宜家":
@@ -105,6 +121,17 @@ def fix_line(line: str) -> str:
     line = " ".join([pair[0] for pair in pos_list])
 
     return line
+
+
+def fix_line(line: str) -> str:
+    """
+    Every line is fixed for regular typos and contextual typos
+    """
+
+    line = fix_regular_typo(line)
+    line = fix_contextual_typo(line)
+    return line.strip()
+    # 以下字嘅修復需要用到句子詞性同上下文信息
 
 
 if __name__ == "__main__":
