@@ -18,37 +18,19 @@ cjk_punct = r'\u3000-\u303F'
 kana = r'\u3040-\u309f\u30a0-\u30ff\u31F0-\u31FF'
 hangul = r'\uAC00-\uD7AF\u1100-\u11ff'
 
-han_regex = '[{}{}{}{}]'.format(han, full_width_punct, cjk_punct, kana, hangul)
+han_regex = '[{}{}{}{}]'.format(han,
+                                full_width_punct, cjk_punct, kana, hangul)
+non_han_regex = '[^{}{}{}{}]'.format(
+    han, full_width_punct, cjk_punct, kana, hangul)
 
 # Debugging purpose
 pos_file = open('pos.txt', 'w', encoding='utf-8')
 
 
-# def separate_han(s):
-#   s = f"\t{s}\t"  # hack to make sure that the non-chinese is always the first and last
-#   other = re.split(u'[\u4E00-\u9FFF]+', s)
-#   han = [x for x in re.split(u'[^\u4E00-\u9FFF]+', s) if x]
-#   assert len(other) == len(han) + 1
-#   return han, other
-
-# def process_han(s):
-#   """Colors it red. Placeholder for spell correction!
-#   """
-#   RED='\033[0;31m'
-#   NC='\033[0m' # No Color
-#   return f"{RED}{s}{NC}"
-
-# def process_text(s):
-#   han, other = separate_han(s)
-#   han = [process_han(h) for h in han] + ["\t"]
-#   out = "".join([f"{o}{h}" for o, h in zip(other, han)]).strip()
-#   print(out)
-
-# for s_i in s:
-#   process_text(s_i)
-
-
 def fix_space(line: str) -> str:
+    """
+    Remove spaces between Han characters and non-Han characters.
+    """
     pattern = '(?<={})\s+(?={})'.format(han_regex, han_regex)
     return re.sub(pattern, '', line)
 
@@ -86,7 +68,6 @@ def fix_contextual_typo(line: str) -> str:
     for i, pair in enumerate(pos_list):
         word, pos = pair
         length = len(pos_list)
-        prev_word = pos_list[i - 1][0] if i > 0 else ''
         prev_pos = pos_list[i - 1][1] if i > 0 else ''
         next_word = pos_list[i + 1][0] if i < length - 1 else ''
         next_pos = pos_list[i + 1][1] if i < length - 1 else ''
@@ -144,7 +125,9 @@ def fix_contextual_typo(line: str) -> str:
             if i <= length-2 and pos_list[i+1][1] == ["NOUN", "ADP"]:
                 pos_list[i] = ("冇", pos)
         # d/D -> 啲
-
+        if word in ["d", "D"]:
+            if re.compile(han_regex).search(next_word):
+                pos_list[i] = ("啲", pos)
         # 以下詞嘅修復需要用到句子詞性同上下文信息
         if word == "宜家":
             if any(word in line for word in ["傢俬", "傢俱", "家居"]):
@@ -157,21 +140,10 @@ def fix_contextual_typo(line: str) -> str:
     return line
 
 
-def fix_line(line: str) -> str:
-    """
-    Every line is fixed for regular typos and contextual typos
-    """
-
-    line = fix_regular_typo(line)
-    line = fix_contextual_typo(line)
-    return line.strip()
-    # 以下字嘅修復需要用到句子詞性同上下文信息
-
-
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description='Fix Cantonese typo.')
     parser.add_argument(
-        '--input', type=str, help='Input text file, each line is a sentence.')
+        '--input', type=str, default="input.txt", help='Input text file, each line is a sentence.')
     args = parser.parse_args()
 
     # Read regular typos
@@ -184,7 +156,7 @@ if __name__ == "__main__":
     output = open("output.txt", "w", encoding="utf-8")
     with open(args.input, 'r', encoding='utf-8') as f:
         for line in f:
-            line = line.strip()
-            fixed_line = fix_space(fix_line(line))
-
-            output.writelines(fixed_line+"\n")
+            fixed_regular_line = fix_regular_typo(line.strip())
+            fixed_contextual_line = fix_contextual_typo(fixed_regular_line)
+            fixed_line = fix_space(fixed_contextual_line)
+            output.writelines(fixed_line + "\n")
