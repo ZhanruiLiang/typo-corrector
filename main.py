@@ -2,12 +2,11 @@
 主要檢查嘅錯別字（錯字 -> 正字）：
 4. 係系喺
 5. 個 -> 嗰
-10. D -> 啲
-12.岩啱
 """
 
 import argparse
 import re
+from typing import List
 
 import pycantonese
 
@@ -18,9 +17,9 @@ cjk_punct = r'\u3000-\u303F'
 kana = r'\u3040-\u309f\u30a0-\u30ff\u31F0-\u31FF'
 hangul = r'\uAC00-\uD7AF\u1100-\u11ff'
 
-han_regex = '[{}{}{}{}]'.format(han,
+cjk_regex = '[{}{}{}{}]'.format(han,
                                 full_width_punct, cjk_punct, kana, hangul)
-non_han_regex = '[^{}{}{}{}]'.format(
+non_cjk_regex = '[^{}{}{}{}]'.format(
     han, full_width_punct, cjk_punct, kana, hangul)
 
 # Debugging purpose
@@ -31,8 +30,10 @@ def fix_space(line: str) -> str:
     """
     Remove spaces between Han characters and non-Han characters.
     """
-    pattern = '(?<={})\s+(?={})'.format(han_regex, han_regex)
-    return re.sub(pattern, '', line)
+    cjk_pattern = '(?<={})\s+(?={})'.format(cjk_regex, cjk_regex)
+    line = re.sub(cjk_pattern, '', line)
+    number_pattern = '(?<={})\s+(?={})'.format(r'[\d.,]', r'[\d.,]')
+    return re.sub(number_pattern, '', line)
 
 
 def fix_regular_typo(line: str) -> str:
@@ -118,6 +119,9 @@ def fix_contextual_typo(line: str) -> str:
                 pass
             else:
                 pos_list[i] = ("畀", pos)
+        # 俾 -> 畀
+        if word == "俾":
+            pos_list[i] = ("畀", pos)
         # 個 -> 嗰
         # 係系喺
         # 無 -> 冇
@@ -126,7 +130,7 @@ def fix_contextual_typo(line: str) -> str:
                 pos_list[i] = ("冇", pos)
         # d/D -> 啲
         if word in ["d", "D"]:
-            if re.compile(han_regex).search(next_word):
+            if re.compile(cjk_regex).search(next_word):
                 pos_list[i] = ("啲", pos)
         # 以下詞嘅修復需要用到句子詞性同上下文信息
         if word == "宜家":
