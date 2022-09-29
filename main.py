@@ -26,6 +26,14 @@ non_cjk_regex = '[^{}{}{}{}]'.format(
 pos_file = open('pos.txt', 'w', encoding='utf-8')
 
 
+def segment_line(line: str) -> List[str]:
+    words = []
+    segments = re.split("\s+", line)
+    for seg in segments:
+        words += pycantonese.segment(seg)
+    return words
+
+
 def fix_space(line: str) -> str:
     """
     Remove spaces between Han characters and non-Han characters.
@@ -61,7 +69,7 @@ def fix_contextual_typo(line: str) -> str:
     8. 左 -> 咗
     """
 
-    pos_list = pycantonese.pos_tag(pycantonese.segment(line))
+    pos_list = pycantonese.pos_tag(segment_line(line))
 
     # Debugging purpose
     print(pos_list, file=pos_file)
@@ -83,7 +91,7 @@ def fix_contextual_typo(line: str) -> str:
         elif word == "既":
             if i >= 1 and pos_list[i-1][1] in ["PRON", "NOUN", "ADJ", "ADV", "VERB"]:
                 # 句子後面冇 "又 ADV/ADJ/VERB" 嘅結構
-                if "又" in "".join([pair[0] for pair in pos_list[i:]]) and pos_list[i+1][1] not in ["ADJ", "ADV", "VERB"]:
+                if "又" in "".join([pair[0] for pair in pos_list[i:]]) and next_pos not in ["ADJ", "ADV", "VERB"]:
                     pass
                 else:
                     pos_list[i] = ("嘅", pos)
