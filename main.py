@@ -80,7 +80,7 @@ def fix_contextual_typo(line: str) -> str:
                 pos_list[i] = (word.replace("左", "咗"), pos)
         # 既 -> 嘅
         # 如果 既 字前面係一個名詞/動詞/形容詞/副詞，句子後面又冇"又 ADV/ADJ/VERB"嘅結構，噉就改成 嘅
-        if word == "既":
+        elif word == "既":
             if i >= 1 and pos_list[i-1][1] in ["PRON", "NOUN", "ADJ", "ADV", "VERB"]:
                 # 句子後面冇 "又 ADV/ADJ/VERB" 嘅結構
                 if "又" in "".join([pair[0] for pair in pos_list[i:]]) and pos_list[i+1][1] not in ["ADJ", "ADV", "VERB"]:
@@ -89,12 +89,12 @@ def fix_contextual_typo(line: str) -> str:
                     pos_list[i] = ("嘅", pos)
         # 黎 -> 嚟
         # 如果 黎 字係動詞，就改成 嚟
-        if word == "黎" and pos == "VERB":
+        elif word == "黎" and pos == "VERB":
             pos_list[i] = ("嚟", pos)
         # 野 -> 嘢
         # 如果係隻名詞，就改成 嘢
         # 包埋動詞同X係因為 pycantonese 有時會識別成動詞
-        if word == "野":
+        elif word == "野":
             if pos in ["NOUN",  "X", "PRON"]:
                 pos_list[i] = ("嘢", pos)
             elif prev_pos in ["VERB"]:
@@ -102,7 +102,7 @@ def fix_contextual_typo(line: str) -> str:
         # 咁/甘 -> 噉, 甘 -> 咁
         # 如果前面係形容詞、副詞，或者後面後動詞、名詞、代詞，就係 噉
         # 如果後面係形容詞、副詞，就係 咁
-        if word == "咁" or (word == "甘" and pos not in ["VERB", "NOUN"]):
+        elif word == "咁" or (word == "甘" and pos not in ["VERB", "NOUN"]):
             if i == length - 1:
                 pos_list[i] = ("噉", pos)
             else:
@@ -114,26 +114,28 @@ def fix_contextual_typo(line: str) -> str:
                     pos_list[i] = ("噉", pos)
         # 比 -> 畀
         # 如果後面第一個詞係名詞，且第二個詞係形容詞、副詞，就係 比
-        if word == "比":
+        elif word == "比":
             if i <= length-3 and pos_list[i+2][1] in ["ADJ", "ADV"]:
                 pass
             else:
                 pos_list[i] = ("畀", pos)
         # 俾 -> 畀
-        if word == "俾":
+        elif word == "俾":
             pos_list[i] = ("畀", pos)
         # 個 -> 嗰
         # 係系喺
         # 無 -> 冇
-        if word == "無":
+        elif word == "無":
             if i <= length-2 and pos_list[i+1][1] == ["NOUN", "ADP"]:
                 pos_list[i] = ("冇", pos)
         # d/D -> 啲
-        if word in ["d", "D"]:
+        elif word in ["d", "D"]:
             if re.compile(cjk_regex).search(next_word):
                 pos_list[i] = ("啲", pos)
+            elif prev_pos in ["ADJ", "ADV"]:
+                pos_list[i] = ("啲", pos)
         # 以下詞嘅修復需要用到句子詞性同上下文信息
-        if word == "宜家":
+        elif word == "宜家":
             if any(word in line for word in ["傢俬", "傢俱", "家居"]):
                 pass
             else:
