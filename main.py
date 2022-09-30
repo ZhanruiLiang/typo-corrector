@@ -1,18 +1,14 @@
 """
-主要檢查嘅錯別字（錯字 -> 正字）：
-4. 係系喺
-5. 個 -> 嗰
-
 Example usage:
 
-  python3 main.py sample.txt
-  python3 main.py --outdir /tmp sample-0.txt sample-1.txt sample-2.txt
+    $ python3 main.py sample.txt
+    $ python3 main.py --outdir /tmp sample-0.txt sample-1.txt sample-2.txt
 """
 
 import argparse
 import pathlib
 import re
-from typing import TextIO
+from typing import TextIO, List, Tuple
 
 import pycantonese
 
@@ -27,13 +23,13 @@ cjk_regex = '[{}{}{}{}]'.format(han,
                                 full_width_punct, cjk_punct, kana, hangul)
 non_cjk_regex = '[^{}{}{}{}]'.format(
     han, full_width_punct, cjk_punct, kana, hangul)
-regular_typos: list[tuple[re.Pattern, str]] = []
+regular_typos: List[Tuple[re.Pattern, str]] = []
 
 # Debugging purpose
 pos_file = open('pos.txt', 'w', encoding='utf-8')
 
 
-def segment_line(line: str) -> list[str]:
+def segment_line(line: str) -> List[str]:
     words = []
     segments = re.split("\s+", line)
     for seg in segments:
@@ -90,7 +86,7 @@ def fix_contextual_typo(line: str) -> str:
 
         # 左 -> 咗
         # 如果 左 字前面係一個動詞，噉就改成 咗
-        if "左" in pair[0]:
+        if "左" in word:
             if prev_pos == "VERB":
                 pos_list[i] = (word.replace("左", "咗"), pos)
         # 既 -> 嘅
@@ -130,7 +126,9 @@ def fix_contextual_typo(line: str) -> str:
         # 比 -> 畀
         # 如果後面第一個詞係名詞，且第二個詞係形容詞、副詞，就係 比
         elif word == "比":
-            if i <= length-3 and pos_list[i+2][1] in ["ADJ", "ADV"]:
+            remain_words = [pair[0] for pair in pos_list[i:]]
+            remain_pos = [pair[1] for pair in pos_list[i:]]
+            if "仲" in remain_words or "更" in remain_words or "ADJ" in remain_pos or "ADV" in remain_pos:
                 pass
             else:
                 pos_list[i] = ("畀", pos)
@@ -161,8 +159,10 @@ def fix_contextual_typo(line: str) -> str:
     return line
 
 
-def correct(input: TextIO, output: TextIO):
-    """Corrects typos from input file and write to output file."""
+def correct(input: TextIO, output: TextIO) -> None:
+    """
+    Corrects typos from input file and write to output file.
+    """
     for line in input:
         fixed = fix_regular_typo(line.strip())
         fixed = fix_contextual_typo(fixed)
@@ -173,10 +173,10 @@ def correct(input: TextIO, output: TextIO):
 def main():
     parser = argparse.ArgumentParser(description='Fix Cantonese typo.')
     parser.add_argument(
-        'inputs', type=str, nargs='+',
+        '--inputs', type=str, nargs='+',
         help='Input text file, each line is a sentence.')
     parser.add_argument(
-        'outdir', type=str, default="output", nargs='?',
+        '--outdir', type=str, default="output", nargs='?',
         help='Output directory.')
     args = parser.parse_args()
 
@@ -189,9 +189,9 @@ def main():
     outdir.mkdir(parents=True, exist_ok=True)
     for input in map(pathlib.Path, args.inputs):
         output = outdir / input.name
-        with (open(input, 'r', encoding='utf-8') as input_f, 
-              open(output, 'w', encoding='utf-8') as output_f):
+        with open(input, 'r', encoding='utf-8') as input_f, open(output, 'w', encoding='utf-8') as output_f:
             correct(input_f, output_f)
+
 
 if __name__ == "__main__":
     main()
