@@ -12,6 +12,8 @@ from typing import TextIO, List, Tuple
 
 import pycantonese
 
+import rules
+
 
 han = r'\u3006\u3007\u4e00-\u9fff\u3400-\u4dbf\U00020000-\U0002a6df\U0002a700-\U0002ebef\U00030000-\U0003134f'
 full_width_punct = r'\uFF00-\uFFEF'
@@ -166,6 +168,7 @@ def correct(input: TextIO, output: TextIO) -> None:
     for line in input:
         fixed = fix_regular_typo(line.strip())
         fixed = fix_contextual_typo(fixed)
+        # fixed = rules.apply_contextual_rules(fixed)
         fixed = fix_space(fixed)
         output.write(fixed + "\n")
 
