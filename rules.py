@@ -74,15 +74,15 @@ def apply_contextual_rules(line: str):
         ctx.prev_word = ctx.word
         ctx.prev_pos = ctx.pos
         if ctx.i + 1 < len(ctx.pos_list):
-            ctx.next_word, ctx.next_word = ctx.pos_list[ctx.i+1]
+            ctx.next_word, ctx.next_pos = ctx.pos_list[ctx.i+1]
         else:
-            ctx.next_word, ctx.next_word = "", Pos.NONE
+            ctx.next_word, ctx.next_pos = "", Pos.NONE
 
         rule_handler = _handlers.get(ctx.word, None)
         if rule_handler:
             rule_handler(ctx)
 
-    return fix_space("".join(w for w, _ in ctx.pos_list))
+    return fix_space(" ".join(w for w, _ in ctx.pos_list))
 
 
 def contextual_rule(word: str, pos: set[str] = set()):
@@ -176,7 +176,7 @@ def _(c: Context):
 @contextual_rule("d")
 @contextual_rule("D")
 def _(c: Context):
-    if re.compile(cjk_regex).search(c.next_word) or c.prev_pos in (Pos.ADJ, Pos.ADV):
+    if re.search(cjk_regex, c.next_word) or c.prev_pos in (Pos.ADJ, Pos.ADV):
         c.replace_word("啲")
 
 @contextual_rule("宜家")
