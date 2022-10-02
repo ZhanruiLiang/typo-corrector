@@ -21,9 +21,9 @@ cjk_punct = r'\u3000-\u303F'
 kana = r'\u3040-\u309f\u30a0-\u30ff\u31F0-\u31FF'
 hangul = r'\uAC00-\uD7AF\u1100-\u11ff'
 
-cjk_regex = '[{}{}{}{}]'.format(han,
+cjk_regex = '[{}{}{}{}{}]'.format(han,
                                 full_width_punct, cjk_punct, kana, hangul)
-non_cjk_regex = '[^{}{}{}{}]'.format(
+non_cjk_regex = '[^{}{}{}{}{}]'.format(
     han, full_width_punct, cjk_punct, kana, hangul)
 regular_typos: List[Tuple[re.Pattern, str]] = []
 
@@ -33,7 +33,7 @@ pos_file = open('pos.txt', 'w', encoding='utf-8')
 
 def segment_line(line: str) -> List[str]:
     words = []
-    segments = re.split("\s+", line)
+    segments = re.split(r"\s+", line)
     for seg in segments:
         words += pycantonese.segment(seg)
     return words
@@ -43,9 +43,9 @@ def fix_space(line: str) -> str:
     """
     Remove spaces between Han characters and non-Han characters.
     """
-    cjk_pattern = '(?<={})\s+(?={})'.format(cjk_regex, cjk_regex)
+    cjk_pattern = r'(?<={})\s+(?={})'.format(cjk_regex, cjk_regex)
     line = re.sub(cjk_pattern, '', line)
-    number_pattern = '(?<={})\s+(?={})'.format(r'[\d.,]', r'[\d.,]')
+    number_pattern = r'(?<={})\s+(?={})'.format(r'[\d.,]', r'[\d.,]')
     return re.sub(number_pattern, '', line)
 
 
@@ -144,7 +144,7 @@ def fix_contextual_typo(line: str) -> str:
                 pos_list[i] = ("晒", pos)
         # 無 -> 冇
         elif word == "無":
-            if i <= length-2 and pos_list[i+1][1] == ["NOUN", "ADP"]:
+            if i <= length-2 and pos_list[i+1][1] in ["NOUN", "ADP"]:
                 pos_list[i] = ("冇", pos)
         # d/D -> 啲
         elif word in ["d", "D"]:
