@@ -4,6 +4,7 @@ from typing import Callable
 
 import pycantonese
 
+
 class Context:
     pos_list: list[tuple[str, str]]
     i: int
@@ -15,8 +16,10 @@ class Context:
     prev_pos: str = ""
 
     @property
-    def suffix(self):
-        """Suffix starting from current index."""
+    def sentence_remain(self):
+        """
+        The remaining part of the sentence.
+        """
         return ''.join(x[0] for x in self.pos_list[self.i:])
 
     def replace_word(self, word: str):
@@ -51,17 +54,20 @@ def _(c: Context):
     if c.prev_pos == Pos.VERB:
         c.replace_word("咗")
 
+
 @contextual_rule("黎")
 def _(c: Context):
     """黎 -> 嚟: 如果 黎 字係動詞，就改成 嚟."""
     if c.pos == Pos.VERB:
         c.replace_word("嚟")
 
+
 @contextual_rule("野")
 def _(c: Context):
     """野 -> 嘢: 如果係隻名詞，就改成 嘢. 包埋動詞同X係因為 pycantonese 有時會識別成動詞."""
-    if c.pos in ["NOUN",  "X", "PRON"] or c.prev_pos in ["VERB"]:
+    if c.pos in (Pos.PRON, Pos.NOUN, Pos.X) or c.prev_pos == Pos.VERB:
         c.replace_word("嘢")
+
 
 @contextual_rule("既")
 def _(c: Context):
@@ -69,7 +75,7 @@ def _(c: Context):
     if c.prev_pos not in (Pos.PRON, Pos.NOUN, Pos.ADJ, Pos.ADV, Pos.VERB):
         return
     # 句子後面冇 "又 ADV/ADJ/VERB" 嘅結構
-    if "又" in c.suffix and c.next_pos not in (Pos.ADJ, Pos.ADV, Pos.VERB):
+    if "又" in c.sentence_remain and c.next_pos not in (Pos.ADJ, Pos.ADV, Pos.VERB):
         return
     c.replace_word("嘅")
 

@@ -139,6 +139,9 @@ def fix_contextual_typo(line: str) -> str:
             pos_list[i] = ("畀", pos)
         # 個 -> 嗰
         # 係系喺
+        elif word == "曬":
+            if prev_pos == "VERB":
+                pos_list[i] = ("晒", pos)
         # 無 -> 冇
         elif word == "無":
             if i <= length-2 and pos_list[i+1][1] == ["NOUN", "ADP"]:
