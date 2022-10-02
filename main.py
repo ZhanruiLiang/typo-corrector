@@ -8,7 +8,7 @@ Example usage:
 import argparse
 import pathlib
 import re
-from typing import TextIO, List, Tuple
+from typing import TextIO
 
 import pycantonese
 
@@ -21,17 +21,15 @@ cjk_punct = r'\u3000-\u303F'
 kana = r'\u3040-\u309f\u30a0-\u30ff\u31F0-\u31FF'
 hangul = r'\uAC00-\uD7AF\u1100-\u11ff'
 
-cjk_regex = '[{}{}{}{}]'.format(han,
-                                full_width_punct, cjk_punct, kana, hangul)
-non_cjk_regex = '[^{}{}{}{}]'.format(
-    han, full_width_punct, cjk_punct, kana, hangul)
-regular_typos: List[Tuple[re.Pattern, str]] = []
+cjk_regex = f'[{han}{full_width_punct}{cjk_punct}{kana}{hangul}]'
+non_cjk_regex = f'[^{han}{full_width_punct}{cjk_punct}{kana}{hangul}]'
+regular_typos: list[tuple[re.Pattern, str]] = []
 
 # Debugging purpose
 pos_file = open('pos.txt', 'w', encoding='utf-8')
 
 
-def segment_line(line: str) -> List[str]:
+def segment_line(line: str) -> list[str]:
     words = []
     segments = re.split("\s+", line)
     for seg in segments:
@@ -144,7 +142,7 @@ def fix_contextual_typo(line: str) -> str:
                 pos_list[i] = ("晒", pos)
         # 無 -> 冇
         elif word == "無":
-            if i <= length-2 and pos_list[i+1][1] == ["NOUN", "ADP"]:
+            if i <= length-2 and pos_list[i+1][1] in ["NOUN", "ADP"]:
                 pos_list[i] = ("冇", pos)
         # d/D -> 啲
         elif word in ["d", "D"]:
