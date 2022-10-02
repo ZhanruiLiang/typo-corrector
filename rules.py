@@ -71,8 +71,6 @@ def apply_contextual_rules(line: str):
     ctx.pos_list = pycantonese.pos_tag(segment_line(line))
     print(ctx.pos_list, file=pos_file)
     for ctx.i, (ctx.word, ctx.pos) in enumerate(ctx.pos_list):
-        ctx.prev_word = ctx.word
-        ctx.prev_pos = ctx.pos
         if ctx.i + 1 < len(ctx.pos_list):
             ctx.next_word, ctx.next_pos = ctx.pos_list[ctx.i+1]
         else:
@@ -81,6 +79,8 @@ def apply_contextual_rules(line: str):
         rule_handler = _handlers.get(ctx.word, None)
         if rule_handler:
             rule_handler(ctx)
+        ctx.prev_word = ctx.word
+        ctx.prev_pos = ctx.pos
 
     return fix_space(" ".join(w for w, _ in ctx.pos_list))
 
@@ -89,29 +89,30 @@ def contextual_rule(word: str, pos: set[str] = set()):
     """Decorator for registering a contextual typo correction rule."""
 
     def deco(f):
-        @functools.wraps(f)
-        def wrapped(ctx: Context):
-            if pos and ctx.pos not in pos:
-                return
-            return f(ctx)
         if word in _handlers:
             raise ValueError(f'rule for {word} already exists: {_handlers[word]}')
-        _handlers[word] = wrapped
-        return wrapped
+        _handlers[word] = f
+        return f
     return deco
 
 
-@contextual_rule("左", {Pos.VERB})
+@contextual_rule("左")
 def _(c: Context):
     """左 -> 咗: 如果 左 字前面係一個動詞，噉就改成 咗."""
-    c.replace_word("咗")
+    if c.prev_pos == Pos.VERB:
+        c.replace_word("咗")
 
+@contextual_rule("左一")
+def _(c: Context):
+    """左 -> 咗: 如果 左 字前面係一個動詞，噉就改成 咗."""
+    if c.prev_pos == Pos.VERB:
+        c.replace_word("咗一")
 
-@contextual_rule("黎", {Pos.VERB})
+@contextual_rule("黎")
 def _(c: Context):
     """黎 -> 嚟: 如果 黎 字係動詞，就改成 嚟."""
-    c.replace_word("嚟")
-
+    if c.pos == Pos.VERB:
+        c.replace_word("嚟")
 
 @contextual_rule("野")
 def _(c: Context):
@@ -119,10 +120,11 @@ def _(c: Context):
     if c.pos in (Pos.PRON, Pos.NOUN, Pos.X) or c.prev_pos == Pos.VERB:
         c.replace_word("嘢")
 
-
-@contextual_rule("既", {Pos.PRON, Pos.NOUN, Pos.ADJ, Pos.ADV, Pos.VERB})
+@contextual_rule("既")
 def _(c: Context):
     """既 -> 嘅: 如果 既 字前面係一個名詞/動詞/形容詞/副詞，句子後面又冇"又 ADV/ADJ/VERB"嘅結構，噉就改成 嘅."""
+    if c.prev_pos not in (Pos.PRON, Pos.NOUN, Pos.ADJ, Pos.ADV, Pos.VERB):
+        return
     # 句子後面冇 "又 ADV/ADJ/VERB" 嘅結構
     if "又" in c.sentence_remain and c.next_pos not in (Pos.ADJ, Pos.ADV, Pos.VERB):
         return
@@ -131,9 +133,12 @@ def _(c: Context):
 @contextual_rule("咁")
 def _(c: Context):
     """咁 -> 噉: 如果前面係形容詞、副詞，或者後面後動詞、名詞、代詞，就係 噉"""
-    if (c.sentence_remain == "" or
-            c.next_pos in (Pos.VERB, Pos.NOUN, Pos.PRON, Pos.PART, Pos.AUX) or
-            c.prev_pos in (Pos.ADJ, Pos.ADV)):
+    if c.next_word == '':
+        c.replace_word("噉")
+    if c.next_pos in (Pos.ADJ, Pos.ADV):
+        return
+    if (c.next_pos in (Pos.VERB, Pos.NOUN, Pos.PRON, Pos.PART, Pos.AUX) or
+        c.prev_pos in (Pos.ADJ, Pos.ADV)):
         c.replace_word("噉")
 
 @contextual_rule("甘")
@@ -142,14 +147,15 @@ def _(c: Context):
     如果前面係形容詞、副詞，或者後面後動詞、名詞、代詞，就係 噉.
     如果後面係形容詞、副詞，就係 咁
     """
+    if c.next_word == '':
+        c.replace_word("噉")
     if c.pos in (Pos.VERB, Pos.NOUN):
         return
     if c.next_pos in (Pos.ADV, Pos.ADJ):
         c.replace_word("咁")
         return
-    if (c.sentence_remain == "" or
-            c.next_pos in (Pos.VERB, Pos.NOUN, Pos.PRON, Pos.PART, Pos.AUX) or
-            c.prev_pos in (Pos.ADJ, Pos.ADV)):
+    if (c.next_pos in (Pos.VERB, Pos.NOUN, Pos.PRON, Pos.PART, Pos.AUX) or
+        c.prev_pos in (Pos.ADJ, Pos.ADV)):
         c.replace_word("噉")
 
 @contextual_rule("比")
@@ -164,9 +170,10 @@ def _(c: Context):
 def _(c: Context):
     c.replace_word("畀")
 
-@contextual_rule("曬", {Pos.VERB})
+@contextual_rule("曬")
 def _(c: Context):
-    c.replace_word("晒")
+    if c.pos == Pos.VERB:
+        c.replace_word("晒")
 
 @contextual_rule("無")
 def _(c: Context):
