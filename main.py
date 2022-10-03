@@ -8,7 +8,7 @@ Example usage:
 import argparse
 import pathlib
 import re
-from typing import TextIO, List, Tuple
+from typing import TextIO
 
 import pycantonese
 
