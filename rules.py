@@ -1,14 +1,15 @@
-import functools
+from __future__ import annotations
+
 import re
 from typing import Callable
 
 import pycantonese
 
-han = r"\u3006\u3007\u4e00-\u9fff\u3400-\u4dbf\U00020000-\U0002a6df\U0002a700-\U0002ebef\U00030000-\U0003134f"
-full_width_punct = r"\uFF00-\uFFEF"
-cjk_punct = r"\u3000-\u303F"
-kana = r"\u3040-\u309f\u30a0-\u30ff\u31F0-\u31FF"
-hangul = r"\uAC00-\uD7AF\u1100-\u11ff"
+han = r"\u3006\u3007\u4e00-\u9fff\u3400-\u4dbf\U00020000-\U0002a6df\U0002a700-\U0002ebef\U00030000-\U000323af"
+full_width_punct = r"\uff00-\uffef"
+cjk_punct = r"\u3000-\u303f"
+kana = r"\u3040-\u309f\u30a0-\u30ff\u31f0-\u31ff"
+hangul = r"\uac00-\ud7af\u1100-\u11ff"
 
 cjk_regex = f"[{han}{full_width_punct}{cjk_punct}{kana}{hangul}]"
 cjk_pattern = re.compile(rf"(?<={cjk_regex})\s+(?={cjk_regex})")
@@ -64,7 +65,7 @@ def fix_space(line: str) -> str:
 
 
 # Debugging purpose
-pos_file = open('pos.txt', 'w', encoding='utf-8')
+pos_file = open("pos.txt", "w", encoding="utf-8")
 
 def apply_contextual_rules(line: str):
     ctx = Context()
@@ -72,7 +73,7 @@ def apply_contextual_rules(line: str):
     print(ctx.pos_list, file=pos_file)
     for ctx.i, (ctx.word, ctx.pos) in enumerate(ctx.pos_list):
         if ctx.i + 1 < len(ctx.pos_list):
-            ctx.next_word, ctx.next_pos = ctx.pos_list[ctx.i+1]
+            ctx.next_word, ctx.next_pos = ctx.pos_list[ctx.i + 1]
         else:
             ctx.next_word, ctx.next_pos = "", Pos.NONE
 
@@ -90,7 +91,7 @@ def contextual_rule(word: str, pos: set[str] = set()):
 
     def deco(f):
         if word in _handlers:
-            raise ValueError(f'rule for {word} already exists: {_handlers[word]}')
+            raise ValueError(f"rule for {word} already exists: {_handlers[word]}")
         _handlers[word] = f
         return f
     return deco
@@ -133,7 +134,7 @@ def _(c: Context):
 @contextual_rule("咁")
 def _(c: Context):
     """咁 -> 噉: 如果前面係形容詞、副詞，或者後面後動詞、名詞、代詞，就係 噉"""
-    if c.next_word == '':
+    if c.next_word == "":
         c.replace_word("噉")
     if c.next_pos in (Pos.ADJ, Pos.ADV):
         return
@@ -147,7 +148,7 @@ def _(c: Context):
     如果前面係形容詞、副詞，或者後面後動詞、名詞、代詞，就係 噉.
     如果後面係形容詞、副詞，就係 咁
     """
-    if c.next_word == '':
+    if c.next_word == "":
         c.replace_word("噉")
     if c.pos in (Pos.VERB, Pos.NOUN):
         return

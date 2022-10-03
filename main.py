@@ -5,12 +5,13 @@ Example usage:
     $ python3 main.py --outdir /tmp sample-0.txt sample-1.txt sample-2.txt
 """
 
+from __future__ import annotations
+
 import argparse
+import itertools
 import pathlib
 import re
 from typing import TextIO
-
-import pycantonese
 
 import rules
 
@@ -38,25 +39,28 @@ def correct(input: TextIO, output: TextIO) -> None:
 
 
 def main():
-    parser = argparse.ArgumentParser(description='Fix Cantonese typo.')
+    parser = argparse.ArgumentParser(description="Fix Cantonese typo.")
     parser.add_argument(
-        '--inputs', type=str, nargs='+',
-        help='Input text file, each line is a sentence.')
+        "inputs", type=str, nargs="+",
+        help="Input text files, each line is a sentence. If the input is a folder, all text files will be globbed.")
     parser.add_argument(
-        '--outdir', type=str, default="output", nargs='?',
-        help='Output directory.')
+        "--outdir", type=str, default="output", nargs="?",
+        help="Output directory. Defaults to ‘output’.")
     args = parser.parse_args()
 
     # Read regular typos
-    for line in open('regular.txt', 'r', encoding='utf-8'):
-        typo, replace = line.strip().split(',')
+    for line in open("regular.txt", "r", encoding="utf-8"):
+        typo, replace = line.strip().split(",")
         regular_typos.append((re.compile(typo), replace))
 
     outdir = pathlib.Path(args.outdir)
-    outdir.mkdir(parents=True, exist_ok=True)
-    for input in map(pathlib.Path, args.inputs):
-        output = outdir / input.name
-        with open(input, 'r', encoding='utf-8') as input_f, open(output, 'w', encoding='utf-8') as output_f:
+    for input, output in itertools.chain.from_iterable(
+        [(input, input.name)] if input.is_file() else [(path, path.relative_to(input)) for path in input.rglob("*.txt")]
+        for input in map(pathlib.Path, args.inputs)
+    ):
+        output = outdir / output
+        output.parent.mkdir(parents=True, exist_ok=True)
+        with open(input, "r", encoding="utf-8") as input_f, open(output, "w", encoding="utf-8") as output_f:
             correct(input_f, output_f)
 
 
