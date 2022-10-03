@@ -14,7 +14,7 @@ import pycantonese
 
 import rules
 
-regular_typos: List[Tuple[re.Pattern, str]] = []
+regular_typos: list[tuple[re.Pattern, str]] = []
 
 
 def fix_regular_typo(line: str) -> str:
