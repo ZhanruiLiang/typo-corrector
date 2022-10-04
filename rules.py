@@ -103,7 +103,9 @@ def contextual_rule(word: str, pos: set[str] = set()):
 
 @contextual_rule("比")
 def _(c: Context):
-    """比 -> 畀: 如果後面第一個詞係名詞，且第二個詞係形容詞、副詞，就係 比"""
+    """
+    比 -> 畀: 如果後面第一個詞係名詞，且第二個詞係形容詞、副詞，就係 比
+    """
     remain_words, remain_pos = zip(*c.pos_list[c.i:])
     if "仲" in remain_words or "更" in remain_words or Pos.ADJ in remain_pos or Pos.ADV in remain_pos:
         return
@@ -124,14 +126,18 @@ def _(c: Context):
 
 @contextual_rule("黎")
 def _(c: Context):
-    """黎 -> 嚟: 如果 黎 字係動詞，就改成 嚟."""
+    """黎 -> 嚟
+    如果 黎 字係動詞，就改成 嚟.
+    """
     if c.pos == Pos.VERB:
         c.replace_word("嚟")
 
 
 @contextual_rule("咁")
 def _(c: Context):
-    """咁 -> 噉: 如果前面係形容詞、副詞，或者後面後動詞、名詞、代詞，就係 噉"""
+    """咁 -> 噉
+    如果前面係形容詞、副詞，或者後面後動詞、名詞、代詞，就係 噉
+    """
     if c.next_word == "":
         c.replace_word("噉")
     if c.next_pos in (Pos.ADJ, Pos.ADV):
@@ -161,7 +167,9 @@ def _(c: Context):
 
 @contextual_rule("既")
 def _(c: Context):
-    """既 -> 嘅: 如果 既 字前面係一個名詞/動詞/形容詞/副詞，句子後面又冇"又 ADV/ADJ/VERB"嘅結構，噉就改成 嘅."""
+    """既 -> 嘅
+    如果 既 字前面係一個名詞/動詞/形容詞/副詞，句子後面又冇"又 ADV/ADJ/VERB"嘅結構，噉就改成 嘅.
+    """
     if c.prev_pos not in (Pos.PRON, Pos.NOUN, Pos.ADJ, Pos.ADV, Pos.VERB):
         return
     # 句子後面冇 "又 ADV/ADJ/VERB" 嘅結構
@@ -170,9 +178,18 @@ def _(c: Context):
     c.replace_word("嘅")
 
 
+@contextual_rule("果")
+def _(c: Context):
+    """果 -> 嗰"""
+    if c.next_pos == Pos.NOUN:
+        c.replace_word("嗰")
+
+
 @contextual_rule("野")
 def _(c: Context):
-    """野 -> 嘢: 如果係隻名詞，就改成 嘢. 包埋動詞同X係因為 pycantonese 有時會識別成動詞."""
+    """野 -> 嘢
+    如果係隻名詞，就改成 嘢. 包埋動詞同X係因為 pycantonese 有時會識別成動詞.
+    """
     if c.pos in (Pos.PRON, Pos.NOUN, Pos.X) or c.prev_pos == Pos.VERB:
         c.replace_word("嘢")
 
@@ -184,6 +201,7 @@ def _(c: Context):
 
 
 @contextual_rule("曬")
+@contextual_rule("哂")
 def _(c: Context):
     if c.pos == Pos.VERB:
         c.replace_word("晒")
