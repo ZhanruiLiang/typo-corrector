@@ -5,6 +5,8 @@ from typing import Callable
 
 import pycantonese
 
+import segmentize
+
 han = r"\u3006\u3007\u4e00-\u9fff\u3400-\u4dbf\U00020000-\U0002a6df\U0002a700-\U0002ebef\U00030000-\U000323af"
 full_width_punct = r"\uff00-\uffef"
 cjk_punct = r"\u3000-\u303f"
@@ -51,14 +53,6 @@ class Pos:
 _handlers: dict[str, Callable[[Context], None]] = {}
 
 
-def segment_line(line: str) -> list[str]:
-    words = []
-    segments = re.split(r"\s+", line)
-    for seg in segments:
-        words += pycantonese.segment(seg)
-    return words
-
-
 def fix_space(line: str) -> str:
     """Remove spaces between Han characters and non-Han characters."""
     line = cjk_pattern.sub("", line)
@@ -71,7 +65,7 @@ pos_file = open("pos.txt", "w", encoding="utf-8")
 
 def apply_contextual_rules(line: str):
     ctx = Context()
-    ctx.pos_list = pycantonese.pos_tag(segment_line(line))
+    ctx.pos_list = pycantonese.pos_tag(segmentize.segment_line(line))
     print(ctx.pos_list, file=pos_file)
     for ctx.i, (ctx.word, ctx.pos) in enumerate(ctx.pos_list):
         if ctx.i + 1 < len(ctx.pos_list):
