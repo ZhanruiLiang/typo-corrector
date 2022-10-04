@@ -6,6 +6,11 @@
 
 本修正器採用嘅正字法見 [粵文常見錯別字](https://jyutping.org/blog/typo/)
 
+## 依賴
+
+- Python >= 3.9
+- PyCantonese
+
 ## 用法
 
 隻修正器可以輸入多個文檔，然後默認輸出到 `/output` 度。佢默認輸入文件入面每一行都係一句話。運行下面嘅命令就得：
@@ -22,6 +27,11 @@ python3 main.py --inputs input.txt
 This is a Cantonese typo corrector, it auto corrects common Cantonese typos in the input texts.
 
 The orthography of this corrector is from [粵文常見錯別字](https://jyutping.org/blog/typo/)
+
+## Dependencies
+
+- Python >= 3.9
+- PyCantonese
 
 ## How to use
 

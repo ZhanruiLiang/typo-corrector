@@ -41,7 +41,7 @@ def correct(input: TextIO, output: TextIO) -> None:
 def main():
     parser = argparse.ArgumentParser(description="Fix Cantonese typo.")
     parser.add_argument(
-        "inputs", type=str, nargs="+",
+        "--inputs", type=str, nargs="+",
         help="Input text files, each line is a sentence. If the input is a folder, all text files will be globbed.")
     parser.add_argument(
         "--outdir", type=str, default="output", nargs="?",
@@ -55,11 +55,13 @@ def main():
 
     outdir = pathlib.Path(args.outdir)
     for input, output in itertools.chain.from_iterable(
-        [(input, input.name)] if input.is_file() else [(path, path.relative_to(input)) for path in input.rglob("*.txt")]
+        [(input, input.name)] if input.is_file() else [
+            (path, path.relative_to(input)) for path in input.rglob("*.txt")]
         for input in map(pathlib.Path, args.inputs)
     ):
         output = outdir / output
         output.parent.mkdir(parents=True, exist_ok=True)
+        print(f"Correcting {input} -> {output}")
         with open(input, "r", encoding="utf-8") as input_f, open(output, "w", encoding="utf-8") as output_f:
             correct(input_f, output_f)
 
