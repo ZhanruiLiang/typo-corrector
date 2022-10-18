@@ -11,6 +11,9 @@ import argparse
 import itertools
 import pathlib
 import re
+import time
+import tqdm
+from concurrent import futures
 from typing import TextIO
 
 import rules
@@ -27,15 +30,20 @@ def fix_regular_typo(line: str) -> str:
         line = typo.sub(replace, line)
     return line
 
+    
+def correct_line(line: str) -> str:
+    fixed = fix_regular_typo(line.strip())
+    return rules.apply_contextual_rules(fixed)
 
-def correct(input: TextIO, output: TextIO) -> None:
+
+def correct(pool: futures.ProcessPoolExecutor, input: TextIO, output: TextIO) -> None:
     """
     Corrects typos from input file and write to output file.
     """
-    for line in input:
-        fixed = fix_regular_typo(line.strip())
-        fixed = rules.apply_contextual_rules(fixed)
-        output.write(fixed + "\n")
+    inputs = list(input)
+    # Keep a moderate chunksize to reduce process pool overhead.
+    for line in tqdm.tqdm(pool.map(correct_line, inputs, chunksize=1024), total=len(inputs)):
+        output.write(line + "\n")
 
 
 def main():
@@ -46,6 +54,9 @@ def main():
     parser.add_argument(
         "--outdir", type=str, default="output", nargs="?",
         help="Output directory. Defaults to ‘output’.")
+    parser.add_argument(
+        "--parallel", type=int, default=0, nargs="?",
+        help="Number of processes to run in parallel. Set to 0 for auto detect.")
     args = parser.parse_args()
 
     # Read regular typos
@@ -54,16 +65,17 @@ def main():
         regular_typos.append((re.compile(typo), replace))
 
     outdir = pathlib.Path(args.outdir)
-    for input, output in itertools.chain.from_iterable(
-        [(input, input.name)] if input.is_file() else [
-            (path, path.relative_to(input)) for path in input.rglob("*.txt")]
-        for input in map(pathlib.Path, args.inputs)
-    ):
-        output = outdir / output
-        output.parent.mkdir(parents=True, exist_ok=True)
-        print(f"Correcting {input} -> {output}")
-        with open(input, "r", encoding="utf-8") as input_f, open(output, "w", encoding="utf-8") as output_f:
-            correct(input_f, output_f)
+    with futures.ProcessPoolExecutor(args.parallel or None) as pool:
+        for input, output in itertools.chain.from_iterable(
+            [(input, input.name)] if input.is_file() else [
+                (path, path.relative_to(input)) for path in input.rglob("*.txt")]
+            for input in map(pathlib.Path, args.inputs)
+        ):
+            output = outdir / output
+            output.parent.mkdir(parents=True, exist_ok=True)
+            print(f"Correcting {input} -> {output}")
+            with open(input, "r", encoding="utf-8") as input_f, open(output, "w", encoding="utf-8") as output_f:
+                correct(pool, input_f, output_f)
 
 
 if __name__ == "__main__":

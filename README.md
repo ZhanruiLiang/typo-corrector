@@ -10,6 +10,7 @@
 
 - Python >= 3.9
 - PyCantonese
+- tqdm
 
 ## 用法
 
